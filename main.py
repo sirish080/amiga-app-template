@@ -28,9 +28,12 @@ from fastapi import FastAPI
 from fastapi import WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from google.protobuf.json_format import MessageToJson
 
 app = FastAPI()
+
+react_build_directory = Path(__file__).parent / "ts" / "dist"
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +41,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
+)
+
+app.mount(
+    "/",
+    StaticFiles(directory=str(react_build_directory.resolve()), html=True),
 )
 
 # to store the events clients
@@ -79,11 +87,6 @@ async def subscribe(websocket: WebSocket, service_name: str, uri_path: str, ever
         await websocket.send_json(MessageToJson(message))
 
     await websocket.close()
-
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
 
 
 if __name__ == "__main__":
