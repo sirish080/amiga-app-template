@@ -33,19 +33,12 @@ from google.protobuf.json_format import MessageToJson
 
 app = FastAPI()
 
-react_build_directory = Path(__file__).parent / "ts" / "dist"
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
-)
-
-app.mount(
-    "/",
-    StaticFiles(directory=str(react_build_directory.resolve()), html=True),
 )
 
 # to store the events clients
@@ -92,8 +85,19 @@ async def subscribe(websocket: WebSocket, service_name: str, uri_path: str, ever
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True, help="config file")
-    parser.add_argument("--port", type=int, default=8002, help="port to run the server")
+    parser.add_argument("--port", type=int, default=8042, help="port to run the server")
+    parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
+
+    if not args.debug:
+        react_build_directory = Path(__file__).parent / "ts" / "dist"
+
+        app.mount(
+            "/",
+            StaticFiles(directory=str(react_build_directory.resolve()), html=True),
+        )
+
+
 
     # config list with all the configs
     config_list: EventServiceConfigList = proto_from_json_file(args.config, EventServiceConfigList())
