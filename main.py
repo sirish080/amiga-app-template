@@ -47,7 +47,14 @@ clients: dict[str, EventClient] = {}
 
 @app.get("/list_uris")
 async def list_uris() -> JSONResponse:
-
+    """Coroutine to list all the uris from all the event services
+    
+    Returns:
+        JSONResponse: the list of uris as a json.
+    
+    Usage:
+        curl -X GET "http://localhost:8042/list_uris"
+    """
     all_uris = {}
 
     for service_name, client in clients.items():
@@ -69,12 +76,23 @@ async def list_uris() -> JSONResponse:
 
 @app.websocket("/subscribe/{service_name}/{uri_path}")
 async def subscribe(websocket: WebSocket, service_name: str, uri_path: str, every_n: int = 1):
+    """Coroutine to subscribe to an event service via websocket.
+    
+    Args:
+        websocket (WebSocket): the websocket connection
+        service_name (str): the name of the event service
+        uri_path (str): the uri path to subscribe to
+        every_n (int, optional): the frequency to receive events. Defaults to 1.
+    
+    Usage:
+        ws = new WebSocket("ws://localhost:8042/subscribe/oak0/left
+    """
 
     client: EventClient = clients[service_name]
 
     await websocket.accept()
 
-    async for event, message in client.subscribe(
+    async for _, message in client.subscribe(
         request=SubscribeRequest(uri=Uri(path=f"/{uri_path}"), every_n=every_n), decode=True
     ):
         await websocket.send_json(MessageToJson(message))
@@ -89,6 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
+    # NOTE: we only serve the react app in debug mode
     if not args.debug:
         react_build_directory = Path(__file__).parent / "ts" / "dist"
 
@@ -96,8 +115,6 @@ if __name__ == "__main__":
             "/",
             StaticFiles(directory=str(react_build_directory.resolve()), html=True),
         )
-
-
 
     # config list with all the configs
     config_list: EventServiceConfigList = proto_from_json_file(args.config, EventServiceConfigList())
