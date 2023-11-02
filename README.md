@@ -1,16 +1,9 @@
-# amiga-app-template-v2
+# amiga-app-template
 
-## Run
+This repository is designed to streamline the creation of a new application deployable to the Amiga brain.
 
-Prepare frontend
+For the most up-to-date documentation on using this template repository, please refer to:
 
-- cd ts
-- npm install
-- npm build
+[amiga.farm-ng.com - **Developing Custom Applications**](https://amiga.farm-ng.com/docs/brain/brain-apps)
 
-Run backend
-
-- cd ..
-- python main.py --config ../workspace/brain2/config.json
-
-Open browser: http://0.0.0.0:8002
+---
