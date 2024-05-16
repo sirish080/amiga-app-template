@@ -59,8 +59,23 @@ async def list_uris() -> JSONResponse:
     all_uris_list: EventServiceConfigList = event_manager.get_all_uris_config_list(
         config_name="all_subscription_uris"
     )
-    print(all_uris_list)
-    return JSONResponse(content=json.loads(MessageToJson(all_uris_list)))
+
+    all_uris = {}
+    for config in all_uris_list.configs:
+        if config.name == "all_subscription_uris":
+            for subscription in config.subscriptions:
+                uri = subscription.uri
+                service_name = uri.query.split("=")[1]
+                key = f"{service_name}{uri.path}"
+                value = {
+                    "scheme": "protobuf",
+                    "authority": config.host,
+                    "path": uri.path,
+                    "query": uri.query,
+                }
+                all_uris[key] = value
+
+    return JSONResponse(content=dict(sorted(all_uris.items())), status_code=200)
 
 
 @app.websocket("/subscribe/{service_name}/{uri_path}")
