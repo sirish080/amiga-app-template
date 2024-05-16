@@ -19,7 +19,10 @@ import json
 from pathlib import Path
 
 import uvicorn
-from farm_ng.core.event_client import EventClient
+from farm_ng.core.event_client_manager import (
+    EventClient,
+    EventClientSubscriptionManager,
+)
 from farm_ng.core.event_service_pb2 import EventServiceConfigList
 from farm_ng.core.event_service_pb2 import SubscribeRequest
 from farm_ng.core.events_file_reader import proto_from_json_file
@@ -32,6 +35,11 @@ from fastapi.staticfiles import StaticFiles
 from google.protobuf.json_format import MessageToJson
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    print("Initializing App...")
+    asyncio.create_task(event_manager.update_subscriptions())
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,31 +55,12 @@ clients: dict[str, EventClient] = {}
 
 @app.get("/list_uris")
 async def list_uris() -> JSONResponse:
-    """Coroutine to list all the uris from all the event services
-    
-    Returns:
-        JSONResponse: the list of uris as a json.
-    
-    Usage:
-        curl -X GET "http://localhost:8042/list_uris"
-    """
-    all_uris = {}
-
-    for service_name, client in clients.items():
-        # get the list of uris from the event service
-        uris: list[Uri] = []
-        try:
-            # NOTE: some services may not be available, so we need to handle the timeout
-            uris = await asyncio.wait_for(client.list_uris(), timeout=0.1)
-        except asyncio.TimeoutError:
-            continue
-
-        # convert the uris to a dict, where the key is the uri full path
-        # and the value is the uri proto as a json string
-        for uri in uris:
-            all_uris[f"{service_name}{uri.path}"] = json.loads(MessageToJson(uri))
-
-    return JSONResponse(content=all_uris, status_code=200)
+    """Return all the uris from the event manager."""
+    all_uris_list: EventServiceConfigList = event_manager.get_all_uris_config_list(
+        config_name="all_subscription_uris"
+    )
+    print(all_uris_list)
+    return JSONResponse(content=json.loads(MessageToJson(all_uris_list)))
 
 
 @app.websocket("/subscribe/{service_name}/{uri_path}")
@@ -116,17 +105,20 @@ if __name__ == "__main__":
             StaticFiles(directory=str(react_build_directory.resolve()), html=True),
         )
 
-    # config list with all the configs
-    config_list: EventServiceConfigList = proto_from_json_file(args.config, EventServiceConfigList())
+    # config with all the configs
+    base_config_list: EventServiceConfigList = proto_from_json_file(
+        args.config, EventServiceConfigList()
+    )
 
-    for config in config_list.configs:
+    # filter out services to pass to the events client manager
+    service_config_list = EventServiceConfigList()
+    for config in base_config_list.configs:
         if config.port == 0:
-            continue  # skip invalid service configs
-        # create the event client
-        client = EventClient(config=config)
+            continue
+        service_config_list.configs.append(config)
 
-        # add the client to the clients dict
-        clients[config.name] = client
+    event_manager = EventClientSubscriptionManager(config_list=service_config_list)
+    print(event_manager)
 
     # run the server
     uvicorn.run(app, host="0.0.0.0", port=args.port)  # noqa: S104
