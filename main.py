@@ -78,30 +78,53 @@ async def list_uris() -> JSONResponse:
     return JSONResponse(content=dict(sorted(all_uris.items())), status_code=200)
 
 
-@app.websocket("/subscribe/{service_name}/{uri_path}")
-async def subscribe(websocket: WebSocket, service_name: str, uri_path: str, every_n: int = 1):
+@app.websocket("/subscribe/{service_name}/{uri_path:path}")
+@app.websocket("/subscribe/{service_name}/{sub_service_name}/{uri_path:path}")
+async def subscribe(
+    websocket: WebSocket,
+    service_name: str,
+    uri_path: str,
+    sub_service_name: str = None,
+    every_n: int = 1
+):
     """Coroutine to subscribe to an event service via websocket.
     
     Args:
         websocket (WebSocket): the websocket connection
         service_name (str): the name of the event service
+        sub_service_name (str, optional): the sub service name, if any
         uri_path (str): the uri path to subscribe to
         every_n (int, optional): the frequency to receive events. Defaults to 1.
     
     Usage:
-        ws = new WebSocket("ws://localhost:8042/subscribe/oak0/left
+        ws = new WebSocket("ws://localhost:8042/subscribe/gps/pvt")
+        ws = new WebSocket("ws://localhost:8042/subscribe/oak/0/imu")
     """
 
-    client: EventClient = clients[service_name]
+    if sub_service_name:
+        full_service_name = f"{service_name}/{sub_service_name}"
+    else:
+        full_service_name = service_name
 
+    if full_service_name not in ["gps", "oak/0", "oak/1", "oak/2", "oak/3"]:
+        client: EventClient = event_manager.clients[full_service_name]
+    else:
+        client: EventClient = event_manager.clients["amiga"]
+
+    print(f"Service: {full_service_name}, topic: {uri_path}")
     await websocket.accept()
 
-    async for _, message in client.subscribe(
-        request=SubscribeRequest(uri=Uri(path=f"/{uri_path}"), every_n=every_n), decode=True
+    async for _, msg in client.subscribe(
+        SubscribeRequest(
+            uri=Uri(path=f"/{uri_path}", query=f"service_name={full_service_name}"),
+            every_n=every_n,
+        ),
+        decode=True,
     ):
-        await websocket.send_json(MessageToJson(message))
+        await websocket.send_json(MessageToJson(msg))
 
     await websocket.close()
+
 
 
 if __name__ == "__main__":
