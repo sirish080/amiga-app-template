@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 from pathlib import Path
 
 import uvicorn
@@ -65,6 +64,7 @@ async def list_uris() -> JSONResponse:
         if config.name == "all_subscription_uris":
             for subscription in config.subscriptions:
                 uri = subscription.uri
+                # service_name is formatted as "service_name=gps", so we split on "=" and take the last [1] part of it.
                 service_name = uri.query.split("=")[1]
                 key = f"{service_name}{uri.path}"
                 value = {
@@ -84,7 +84,7 @@ async def subscribe(
     websocket: WebSocket,
     service_name: str,
     uri_path: str,
-    sub_service_name: str = None,
+    sub_service_name: str | None = None,
     every_n: int = 1
 ):
     """Coroutine to subscribe to an event service via websocket.
@@ -92,8 +92,8 @@ async def subscribe(
     Args:
         websocket (WebSocket): the websocket connection
         service_name (str): the name of the event service
-        sub_service_name (str, optional): the sub service name, if any
         uri_path (str): the uri path to subscribe to
+        sub_service_name (str, optional): the sub service name, if any
         every_n (int, optional): the frequency to receive events. Defaults to 1.
     
     Usage:
@@ -101,15 +101,13 @@ async def subscribe(
         ws = new WebSocket("ws://localhost:8042/subscribe/oak/0/imu")
     """
 
-    if sub_service_name:
-        full_service_name = f"{service_name}/{sub_service_name}"
-    else:
-        full_service_name = service_name
+    full_service_name = f"{service_name}/{sub_service_name}" if sub_service_name else service_name
 
-    if full_service_name not in ["gps", "oak/0", "oak/1", "oak/2", "oak/3"]:
-        client: EventClient = event_manager.clients[full_service_name]
-    else:
-        client: EventClient = event_manager.clients["amiga"]
+    client: EventClient = (
+        event_manager.clients[full_service_name]
+        if full_service_name not in ["gps", "oak/0", "oak/1", "oak/2", "oak/3"]
+        else event_manager.clients["amiga"]
+    )
 
     await websocket.accept()
 
