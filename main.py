@@ -111,7 +111,6 @@ async def subscribe(
     else:
         client: EventClient = event_manager.clients["amiga"]
 
-    print(f"Service: {full_service_name}, topic: {uri_path}")
     await websocket.accept()
 
     async for _, msg in client.subscribe(
@@ -124,8 +123,6 @@ async def subscribe(
         await websocket.send_json(MessageToJson(msg))
 
     await websocket.close()
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -156,7 +153,6 @@ if __name__ == "__main__":
         service_config_list.configs.append(config)
 
     event_manager = EventClientSubscriptionManager(config_list=service_config_list)
-    print(event_manager)
 
     # run the server
     uvicorn.run(app, host="0.0.0.0", port=args.port)  # noqa: S104
