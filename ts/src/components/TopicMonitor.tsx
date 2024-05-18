@@ -12,7 +12,7 @@ function TopicMonitor() {
         try {
             // Replace with your backend URL
             const response = await fetch(
-                `${window.location.protocol}//${window.location.hostname}:8042/list_uris`
+                `${window.location.protocol}//${window.location.hostname}:${window.location.port}/list_uris`
             );
             // Check if the request was successful
             if (!response.ok) {

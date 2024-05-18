@@ -1,32 +1,48 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 const ExitButton: React.FC = () => {
-  const appRoute = "8042"; // Hard-code the app route
+  const [appData, setAppData] = useState<{ [key: string]: any }>({});
 
-  const stopBackendService = async () => {
-    try {
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:8001/systemctl_action/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          app_route: appRoute,
-          action: "stop",
-        }),
+  const handleClick = () => {
+    const baseEndpoint = `http://${window.location.hostname}:8001/systemctl_action/`;
+
+    const requestBody = {
+      account_name: appData.account, //farm-ng-user-ian-b
+      service_id: appData.name, // example-app.service
+      action: "stop",
+    };
+
+    // request server start the service
+    fetch(baseEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        console.log("Service action response:", result);
+        // redirect
+        window.location.href = `${window.location.protocol}//${window.location.hostname}/apps/launcher`;
+      })
+      .catch((error) => {
+        console.error("Error:", error);
       });
-
-      const result = await response.json();
-      console.log("Service stop response:", result);
-    } catch (error) {
-      console.error("Error stopping service:", error);
-    }
   };
 
-  const handleExitClick = async () => {
-    await stopBackendService();
-    window.location.href = `${window.location.protocol}//${window.location.hostname}/apps/launcher`;
-  };
+  useEffect(() => {
+    const baseEndpoint = `http://${window.location.hostname}:8001/custom_app_info/${window.location.port}`;
+
+    fetch(baseEndpoint)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result) {
+          console.log("RESULT", result);
+          setAppData(result.service);
+        }
+      });
+  }, []);
 
   return (
     <button
@@ -36,7 +52,7 @@ const ExitButton: React.FC = () => {
         left: 10,
         zIndex: 1000,
       }}
-      onClick={handleExitClick}
+      onClick={handleClick}
     >
       EXIT
     </button>
