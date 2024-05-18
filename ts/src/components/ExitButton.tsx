@@ -7,8 +7,8 @@ const ExitButton: React.FC = () => {
     const baseEndpoint = `http://${window.location.hostname}:8001/systemctl_action/`;
 
     const requestBody = {
-      account_name: appData.account, //farm-ng-user-ian-b
-      service_id: appData.name, // example-app.service
+      account_name: appData.account, 
+      service_id: appData.name, 
       action: "stop",
       app_route: appData.app_route
     };
@@ -39,7 +39,6 @@ const ExitButton: React.FC = () => {
       .then((response) => response.json())
       .then((result) => {
         if (result) {
-          console.log("RESULT", result);
           setAppData(result.service);
         }
       });
