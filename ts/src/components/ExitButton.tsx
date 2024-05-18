@@ -10,6 +10,7 @@ const ExitButton: React.FC = () => {
       account_name: appData.account, //farm-ng-user-ian-b
       service_id: appData.name, // example-app.service
       action: "stop",
+      app_route: appData.app_route
     };
 
     // request server start the service
