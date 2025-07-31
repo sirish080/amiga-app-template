@@ -47,9 +47,15 @@ const ExitButton: React.FC = () => {
   return (
     <button
       style={{
-        position: "absolute",
-        bottom: 5,
-        left: 10,
+        position: "relative",
+        padding: "6px 12px",
+        fontSize: "14px",
+        cursor: "pointer",
+        border: "none",
+        borderRadius: "4px",
+        backgroundColor: "#007bff",
+        color: "#fff",
+        minWidth: "75px",
         zIndex: 1000,
       }}
       onClick={handleClick}
